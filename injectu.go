@@ -18,10 +18,12 @@ const ADD = "http://jfh.10086yux.com/submit.asp"
 
 var procs int
 var timeout int
+var duration int
 
 func init() {
 	flag.IntVar(&procs, "proc", runtime.NumCPU(), "Start n processes.")
 	flag.IntVar(&timeout, "timeout", 10, "Set timeout")
+    flag.IntVar(&duration, "freq", 500, "Set access frequency (ms)")
 	flag.Parse()
 }
 
@@ -31,7 +33,8 @@ func main() {
 	client := new(http.Client)
 	client.Timeout = time.Second * time.Duration(timeout)
 	for i := 0; i < procs; i++ {
-		go whoop(client, ch, i)
+		go whoop(client, ch, i, duration)
+        time.Sleep(time.Duration(duration) * time.Millisecond)
 	}
 	counter := 0
 	for {
@@ -45,7 +48,7 @@ func main() {
 	}
 }
 
-func whoop(client *http.Client, ch chan int, proc int) {
+func whoop(client *http.Client, ch chan int, proc int, duration int) {
 	for {
 		vals := make(url.Values)
 		vals.Set("idType", "1")
@@ -151,5 +154,6 @@ func whoop(client *http.Client, ch chan int, proc int) {
 		} else {
 			fmt.Fprintf(os.Stderr, "Proc %d Got Err: %s\n", proc, d.Status)
 		}
+        time.Sleep(time.Duration(duration) * time.Millisecond)
 	}
 }
