@@ -4,6 +4,7 @@
 import urllib
 import urllib2
 import re
+import time
 
 REG = "location.href='(down.asp)'"
 
@@ -31,10 +32,11 @@ while True:
     try:
         if response.getcode() == 200:
             nk = r.findall(response.read())
-            if nk[0] == 'down.asp':
-                n += 1
-                print u'已轰炸%d次' % n
-            else:
+            try:
+                if nk[0] == 'down.asp':
+                    n += 1
+                    print u'已轰炸%d次' % n
+            except Exception:
                 print u'目测被墙'
                 break
     except urllib2.HTTPError as e:
@@ -42,3 +44,4 @@ while True:
     except KeyboardInterrupt:
         print u'爷，玩够了'
         break
+    time.sleep(1)
