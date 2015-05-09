@@ -21,7 +21,7 @@ var timeout int
 
 func init() {
 	flag.IntVar(&procs, "proc", runtime.NumCPU(), "Start n processes.")
-	flag.IntVar(&timeout, "timeout", 2, "Set timeout")
+	flag.IntVar(&timeout, "timeout", 10, "Set timeout")
 	flag.Parse()
 }
 
@@ -56,7 +56,7 @@ func whoop(client *http.Client, ch chan int, proc int) {
 					strconv.Itoa(
 						rand.Int(),
 					),
-                )[0:3],
+				)[0:3],
 			),
 		)
 		vals.Set(
@@ -65,8 +65,8 @@ func whoop(client *http.Client, ch chan int, proc int) {
 				[]byte(
 					strconv.Itoa(
 						rand.Int(),
-                    ),
-                )[0:10],
+					),
+				)[0:10],
 			),
 		)
 		vals.Set(
@@ -125,7 +125,10 @@ func whoop(client *http.Client, ch chan int, proc int) {
 		)
 		vals.Set("ssName", fmt.Sprintf("%03d", strconv.Itoa(rand.Int()%1000)))
 		vals.Set("sja", "01")
-		vals.Set("sja", "2018")
+		vals.Set(
+			"sja",
+			fmt.Sprintf("%04d", strconv.Itoa(rand.Int()%10000)),
+		)
 
 		req, err := http.NewRequest(
 			"POST",
