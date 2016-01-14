@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -16,23 +17,27 @@ import (
 	"time"
 )
 
-const ADD = "http://jfh.10086yux.com/submit.asp"
-const REG = "location.href='(down.asp)'"
+const ADD = ""
+const REG = "([0-9]+)"
 
 var procs int
 var timeout int
 var duration int
+var limit int
 
 func init() {
 	flag.IntVar(&procs, "proc", 1, "Start n processes.")
 	flag.IntVar(&timeout, "timeout", 10, "Set timeout")
 	flag.IntVar(&duration, "freq", 1000, "Set access frequency (ms)")
+	flag.IntVar(&limit, "limit", 0, "Set limit, 0 means no limit")
 	flag.Parse()
 }
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	ch := make(chan int, 1024)
+	si := make(chan os.Signal, 1)
+	signal.Notify(si, os.Interrupt, os.Kill)
 	client := new(http.Client)
 	client.Timeout = time.Second * time.Duration(timeout)
 	for i := 0; i < procs; i++ {
@@ -41,10 +46,18 @@ func main() {
 	}
 	counter := 0
 	for {
+		if limit > 0 && counter >= limit {
+			fmt.Printf("\n\n已达到最大攻击次数：%d\n", limit)
+			os.Exit(0)
+		}
+
 		select {
 		case <-ch:
 			counter++
 			fmt.Printf("已轰炸%d次\r", counter)
+		case <-si:
+			fmt.Printf("\n\n收到信号，程序退出，共轰炸%d次\n", counter)
+			os.Exit(0)
 		default:
 			continue
 		}
@@ -60,9 +73,9 @@ func whoop(client *http.Client, ch chan int, proc int, duration int) {
 	rn := regexp.MustCompile(REG)
 	for {
 		vals := make(url.Values)
-		vals.Set("idType", "1")
-		vals.Set(
-			"cnName",
+		vals.Set("Area", strconv.Itoa(rand.Int()%100))
+		vals.Set("TEL", fmt.Sprintf("1%02d%08d", rand.Int()%100, rand.Int()%100000000))
+		vals.Set("Name",
 			base64.StdEncoding.EncodeToString(
 				[]byte(
 					strconv.Itoa(
@@ -70,74 +83,6 @@ func whoop(client *http.Client, ch chan int, proc int, duration int) {
 					),
 				)[0:3],
 			),
-		)
-		vals.Set(
-			"sec_val",
-			base64.StdEncoding.EncodeToString(
-				[]byte(
-					strconv.Itoa(
-						rand.Int(),
-					),
-				)[0:10],
-			),
-		)
-		vals.Set(
-			"idcard",
-			fmt.Sprintf(
-				"%04d%04d%05d",
-				strconv.Itoa(
-					rand.Int()%10000,
-				),
-				strconv.Itoa(
-					rand.Int()%10000,
-				),
-				strconv.Itoa(
-					rand.Int()%100000,
-				),
-			),
-		)
-		vals.Set(
-			"idcard1",
-			fmt.Sprintf(
-				"%06d",
-				strconv.Itoa(
-					rand.Int()%1000000,
-				),
-			),
-		)
-		vals.Set(
-			"idNo1",
-			fmt.Sprintf(
-				"%06d%08d%04d",
-				strconv.Itoa(
-					rand.Int()%1000000,
-				),
-				strconv.Itoa(
-					rand.Int()%10000000,
-				),
-				strconv.Itoa(
-					rand.Int()%10000,
-				),
-			),
-		)
-		vals.Set(
-			"shouji",
-			fmt.Sprintf(
-				"1%05d%05d",
-				strconv.Itoa(
-					rand.Int()%100000,
-				),
-				strconv.Itoa(
-					rand.Int()%100000,
-				),
-			),
-		)
-		vals.Set("ssName", fmt.Sprintf("%03d", strconv.Itoa(rand.Int()%1000)))
-		vals.Set("sja", "01")
-		vals.Set(
-			"sja",
-			//fmt.Sprintf("%04d", strconv.Itoa(rand.Int()%10000)),
-			"2018",
 		)
 
 		req, err := http.NewRequest(
